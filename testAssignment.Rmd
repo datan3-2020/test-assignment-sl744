@@ -1,7 +1,7 @@
 ---
 title: "Test statistical assignment"
-author: "Alexey Bessudnov"
-date: "22 January 2020"
+author: "Simone Long"
+date: "27 January 2020"
 output: github_document
 ---
 
@@ -9,65 +9,76 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Introduction
-
-Please change the author and date fields above as appropriate. Do not change the output format. Once you have completed the assignment you want to knit your document into a markdown document in the "github_document" format and then commit both the .Rmd and .md files (and all the associated files with graphs) to your private assignment repository on Github.
-
 ## Reading data (40 points)
 
-First, we need to read the data into R. For this assignment, I ask you to use data from the youth self-completion questionnaire (completed by children between 10 and 15 years old) from Wave 9 of the Understanding Society. It is one of the files you have downloaded as part of SN6614 from the UK Data Service. To help you find and understand this file you will need the following documents:
 
-1) The Understanding Society Waves 1-9 User Guide: https://www.understandingsociety.ac.uk/sites/default/files/downloads/documentation/mainstage/user-guides/mainstage-user-guide.pdf
-2) The youth self-completion questionnaire from Wave 9: https://www.understandingsociety.ac.uk/sites/default/files/downloads/documentation/mainstage/questionnaire/wave-9/w9-gb-youth-self-completion-questionnaire.pdf
-3) The codebook for the file: https://www.understandingsociety.ac.uk/documentation/mainstage/dataset-documentation/datafile/youth/wave/9
+```{r message=FALSE, warning=FALSE}
 
+suppressMessages(library(tidyverse))
 
-```{r}
-library(tidyverse)
-# This attaches the tidyverse package. If you get an error here you need to install the package first. 
-Data <- read_tsv("")
-# You need to add between the quotation marks a full path to the required file on your computer.
+youth <- read_tsv("C:/Users/simon/OneDrive/Documents/datan3_2019/data/UKDA-6614-tab/tab/ukhls_w9/i_youth.tab")
+
 ```
 
 ## Tabulate variables (10 points)
 
-In the survey children were asked the following question: "Do you have a social media profile or account on any sites or apps?". In this assignment we want to explore how the probability of having an account on social media depends on children's age and gender.
+```{r tables-youth}
+dvagetab <- table(youth$i_dvage)
+knitr::kable(dvagetab,
+             col.names = c("Age", "Freq"),
+             caption = "*Age Frequency*")
 
-Tabulate three variables: children's gender, age (please use derived variables) and having an account on social media.
+socwebtab <- table(youth$i_ypsocweb)
+knitr::kable(socwebtab,
+             col.names = c("On Social Media?", "Freq"),
+             caption = "*Social Media Frequency*")
 
-```{r}
-# add your code here
-
+ypsextab <- table(youth$i_ypsex)
+knitr::kable(ypsextab,
+             col.names = c("Sex", "Freq"),
+             caption = "*Sex Frequency*")
 ```
 
 ## Recode variables (10 points)
 
-We want to create a new binary variable for having an account on social media so that 1 means "yes", 0 means "no", and all missing values are coded as NA. We also want to recode gender into a new variable with the values "male" and "female" (this can be a character vector or a factor).
-
 ```{r}
-# add your code here
+
+youth$i_ypsocweb_bin <- NA
+youth$i_ypsocweb_bin[youth$i_ypsocweb == 1] <- 1
+youth$i_ypsocweb_bin[youth$i_ypsocweb == 2] <- 0
+youth$i_ypsocweb_bin[youth$i_ypsocweb == -9] <- NA
+
+youth$i_sex_bin <- ifelse(youth$i_ypsex == 1, "Male", "Female")
+
 ```
 
 ## Calculate means (10 points)
 
-Produce code that calculates probabilities of having an account on social media (i.e. the mean of your new binary variable produced in the previous problem) by age and gender. 
-
 ```{r}
-# add your code here
+
+prob.age_socweb <- tapply(youth$i_ypsocweb_bin, youth$i_age_dv, mean, na.rm = TRUE)
+knitr::kable(prob.age_socweb,
+             col.names = c("Probability of Having Social Media"),
+             caption = "*Probability of Being on Social Media Relative to Age*")
+
+prob.sex_socweb <- tapply(youth$i_ypsocweb_bin, youth$i_sex_bin, mean, na.rm = TRUE)
+knitr::kable(prob.sex_socweb,
+             col.names = c("Probability of Having Social Media"),
+             caption = "*Probability of Being on Social Media Relative to Sex*")
+
 ```
 
 ## Write short interpretation (10 points)
 
-Write two or three sentences interpreting your findings above.
+There appears to be a generally positive trend in the probability of being on social media relative to age; the older a young person is, the more likely they are to have an online presence. As far as gender/sex is concerned, women seem to have a higher probability of having social media (specificially, a 6% greater likelihood). It stands to reason, therefore, that 16 year-old girls are most likely to be active on social media.
 
 ## Visualise results (20 points)
 
-Create a statistical graph (only one, but it can be faceted) illustrating your results (i.e. showing how the probability of having an account on social media changes with age and gender). Which type of statistical graph would be most appropriate for this?
+```{r warning=FALSE}
+library(ggplot2)
 
-```{r}
-# add your code here
+ggplot(youth, aes(x = factor(i_age_dv))) +
+  stat_summary_bin(aes(y = i_ypsocweb_bin), fun.y = "mean", geom = "bar", binwidth = 0.5) +
+  theme(axis.text.x = element_text(size = 9, angle = 45)) + facet_grid(. ~ i_sex_bin)
+  
 ```
-
-## Conclusion
-
-This is a test formative assignment and the mark will not count towards your final mark. If you cannot answer any of the questions above this is fine -- we are just starting this module! However, please do submit this assignment in any case to make sure that you understand the procedure, that it works correctly and you do not have any problems with summative assignments later.
